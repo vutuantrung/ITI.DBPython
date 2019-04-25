@@ -1,0 +1,1 @@
+INSERT INTO personnages(nom_personnage) VALUES(?);

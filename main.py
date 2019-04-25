@@ -1,6 +1,6 @@
-import sqlite3 
+import sqlite3
 from sqlite3 import Error
-from privateData import datPath
+
 
 def create_connection(db_file):
     """ Create a database connection to a SQLite database"""
@@ -9,8 +9,9 @@ def create_connection(db_file):
         print('Connection etablished. Version: ' + sqlite3.version)
         return conn
     except Error as e:
-        print(e)
+        print("Error connecting db: " + e)
     return None
+
 
 def read_source_data():
     try:
@@ -21,9 +22,9 @@ def read_source_data():
                 print('DAT file not found!')
             return file
     except Error as e:
-        print(e)
-        print('Error while loading DAT file')
+        print('Error loading DAT file: ' + e)
     return None
+
 
 def create_tables(conn, sqlRequest):
     try:
@@ -31,51 +32,103 @@ def create_tables(conn, sqlRequest):
         c.execute(sqlRequest)
         print('table is created')
     except Error as e:
-        print(e)
-        print('Error while creating tables')
+        print('Error creating tables: ' + e)
+
+
+def create_personnage(conn, person):
+    fd = open("sql/20192504.005.Install-PersonnageInsert.sql", "r")
+    sqlRequest = fd.read()
+
+    cur = conn.cursor()
+    cur.execute(sqlRequest, person)
+    return cur.lastrowid
+
+def search_personnage(conn, person):
+    fd = open("sql/20192504.009.Install-PersonnageSearch.sql", "r")
+    sqlRequest = fd.read()
+
+    cur = conn.cursor()
+    cur.execute(sqlRequest, person)
+    rows = cur.fetchall()
+
+    for row in rows:
+        print(row)
+
+
+def create_piece(conn, piece):
+    fd = open("sql/20192504.006.Install-PieceInsert.sql", "r")
+    sqlRequest = fd.read()
+
+    cur = conn.cursor()
+    cur.execute(sqlRequest, piece)
+    return cur.lastrowid
+
+def search_piece(conn, piece):
+    fd = open("sql/20192504.010.Install-PieceSearch.sql", "r")
+    sqlRequest = fd.read()
+
+    cur = conn.cursor()
+    cur.execute(sqlRequest, piece)
+    rows = cur.fetchall()
+
+    for row in rows:
+        print(row)
+
+
+def create_tirade(conn, tirade):
+    fd = open("sql/20192504.007.Install-TiradeInsert.sql", "r")
+    sqlRequest = fd.read()
+
+    cur = conn.cursor()
+    cur.execute(sqlRequest, tirade)
+    return cur.lastrowid
+
+
+def create_texte(conn, texte):
+    fd = open("sql/20192504.008.Install-TexteInsert.sql", "r")
+    sqlRequest = fd.read()
+
+    cur = conn.cursor()
+    cur.execute(sqlRequest, texte)
+    return cur.lastrowid
+
 
 def main():
-    conn = create_connection('db/dbExercice.db')
+    conn = create_connection('db/dbShakespeare.db')
 
     if conn is not None:
         # Create Personnage table
-        fd = open("sql/20192504.001.Install-tPersonnage.sql", "r")
+        fd = open("sql/20192504.001.Install-tPersonnageCreate.sql", "r")
         sqlRequest = fd.read()
         create_tables(conn, sqlRequest)
 
         # Create Piece table
-        fd = open("sql/20192504.002.Install-tPiece.sql", "r")
+        fd = open("sql/20192504.002.Install-tPieceCreate.sql", "r")
         sqlRequest = fd.read()
         create_tables(conn, sqlRequest)
 
         # Create Tirade table
-        fd = open("sql/20192504.003.Install-tTirade.sql", "r")
+        fd = open("sql/20192504.003.Install-tTiradeCreate.sql", "r")
         sqlRequest = fd.read()
         create_tables(conn, sqlRequest)
 
         # Create Texte table
-        fd = open("sql/20192504.004.Install-tTexte.sql", "r")
+        fd = open("sql/20192504.004.Install-tTexteCreate.sql", "r")
         sqlRequest = fd.read()
         create_tables(conn, sqlRequest)
 
-    dataSrc = read_source_data()
+        # Test insert personnage
+        person = ('VUTuanTrung',)
+        personId = create_personnage(conn, person)
 
+        print(personId)
 
+        search_personnage(conn, person)
 
-
-
-
-
-
-
-
+    #dtLines = read_source_data()
 
 
 main()
-
-
-
-
 
 
 """
