@@ -3,7 +3,7 @@ from sqlite3 import Error
 from privateData import datPath
 
 def create_connection(db_file):
-    """ Create a database connection to a SQLite database""" 
+    """ Create a database connection to a SQLite database"""
     try:
         conn = sqlite3.connect(db_file)
         print('Connection etablished. Version: ' + sqlite3.version)
@@ -60,7 +60,7 @@ def main():
 
     dataSrc = read_source_data()
 
-    
+
 
 
 
@@ -104,11 +104,14 @@ La sixième colonne (toujours renseignée) est soit:
 	+ une indication scénique:
         - entrée/sortie de personnage
         - lieu où se passe la scène
-        - indication de début d'acte)
+        - indication de début d'acte
 
 1. A part la colonne id dans texte, les identifiants sont générés par le système et auto-incrémentés.
 2. La colonne 'id' du fichier de données va dans la colonne id de la table texte.
 3. Pour les indications scéniques telle que l'id n°300 ci-dessus, on "oubliera" le nom du personnage (le personnage n'est important que quand il parle).
-4. La colonne composite du ficher (numéro d'acte, de scène et de vers) est à éclater pour avoir les numéros d'acte et de scène dans tirades et le numéro de vers dans texte.
+4. La colonne composite du ficher (numéro d'acte, de scène et de vers) est à éclater pour avoir:
+    + les numéros d'acte
+    + la scène dans tirades
+    + le numéro de vers dans texte.
 
 """
