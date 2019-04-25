@@ -58,5 +58,4 @@ docs/_build/
 target/
 
 # Other files
-db/Exercice2.db
-privateData.py
+db/
