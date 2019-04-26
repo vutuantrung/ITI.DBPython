@@ -1,30 +1,28 @@
 import sqlite3
 from sqlite3 import Error
-
+import time
 
 def create_connection(db_file):
     """ Create a database connection to a SQLite database"""
     try:
         conn = sqlite3.connect(db_file)
+        conn.row_factory = sqlite3.Row
         print('Connection etablished. Version: ' + sqlite3.version)
         return conn
     except Error as e:
         print("Error connecting db: " + e)
     return None
 
-
-def read_source_data():
+def read_source_data(conn):
     try:
-        with open('db/shakespeare.dat', 'r') as file:
-            if(file is not None):
-                print('DAT file loaded!')
+        with open('db/shakespeare.dat', 'r') as allLines:
+            if(allLines is not None):
+                for line in allLines:
+                    save_line(conn, line)
             else:
                 print('DAT file not found!')
-            return file
     except Error as e:
         print('Error loading DAT file: ' + e)
-    return None
-
 
 def create_tables(conn, sqlRequest):
     try:
@@ -33,7 +31,6 @@ def create_tables(conn, sqlRequest):
         print('table is created')
     except Error as e:
         print('Error creating tables: ' + e)
-
 
 def create_personnage(conn, person):
     fd = open("sql/20192504.005.Install-PersonnageInsert.sql", "r")
@@ -49,11 +46,13 @@ def search_personnage(conn, person):
 
     cur = conn.cursor()
     cur.execute(sqlRequest, person)
-    rows = cur.fetchall()
+    row = cur.fetchone()
 
-    for row in rows:
-        print(row)
+    idPerson = -1
+    if(row is not None):
+        idPerson = row['id_personnage']
 
+    return idPerson
 
 def create_piece(conn, piece):
     fd = open("sql/20192504.006.Install-PieceInsert.sql", "r")
@@ -69,11 +68,13 @@ def search_piece(conn, piece):
 
     cur = conn.cursor()
     cur.execute(sqlRequest, piece)
-    rows = cur.fetchall()
+    row = cur.fetchone()
 
-    for row in rows:
-        print(row)
+    idPiece = -1
+    if(row is not None):
+        idPiece = row['id_piece']
 
+    return idPiece
 
 def create_tirade(conn, tirade):
     fd = open("sql/20192504.007.Install-TiradeInsert.sql", "r")
@@ -83,6 +84,15 @@ def create_tirade(conn, tirade):
     cur.execute(sqlRequest, tirade)
     return cur.lastrowid
 
+def tirade_exist(conn, idTirade):
+    sqlRequest = """SELECT * FROM tirades WHERE id_tirade = ?"""
+    cur = conn.cursor()
+    cur.execute(sqlRequest, (idTirade,))
+    row = cur.fetchone()
+
+    if(row is not None):
+        return True
+    return False
 
 def create_texte(conn, texte):
     fd = open("sql/20192504.008.Install-TexteInsert.sql", "r")
@@ -92,41 +102,144 @@ def create_texte(conn, texte):
     cur.execute(sqlRequest, texte)
     return cur.lastrowid
 
+def create_all_tables(conn):
+    # Create Personnage table
+    fd = open("sql/20192504.001.Install-tPersonnageCreate.sql", "r")
+    sqlRequest = fd.read()
+    create_tables(conn, sqlRequest)
+
+    # Create Piece table
+    fd = open("sql/20192504.002.Install-tPieceCreate.sql", "r")
+    sqlRequest = fd.read()
+    create_tables(conn, sqlRequest)
+
+    # Create Tirade table
+    fd = open("sql/20192504.003.Install-tTiradeCreate.sql", "r")
+    sqlRequest = fd.read()
+    create_tables(conn, sqlRequest)
+
+    # Create Texte table
+    fd = open("sql/20192504.004.Install-tTexteCreate.sql", "r")
+    sqlRequest = fd.read()
+    create_tables(conn, sqlRequest)
+
+# Get parameters for tirade creation
+
+def create_tirade_object(conn, datas):
+    idPiece = get_id_piece(conn, datas[1])
+
+    idPersonnage = None
+    if(datas[4] != ""):
+        idFound = search_personnage(conn, (datas[4],))
+        if(idFound == -1):
+            idPersonnage = create_personnage(conn, (datas[4],))
+        else:
+            idPersonnage = idFound
+
+    numActs = get_num_acts(datas[3])
+
+    numSceneTirade = get_num_scene_tirade(datas[3])
+
+    tiradeObj = (idPiece, idPersonnage, numActs, numSceneTirade, )
+
+    return create_tirade(conn, tiradeObj)
+
+# Get parameters for texte creation
+
+def get_id_piece(conn, pieceTitre):
+    piece = (pieceTitre,)
+    idFound = search_piece(conn, piece)
+    if(idFound != -1):
+        return idFound
+    else:
+        return create_piece(conn, piece)
+
+def get_id_tirade(conn, datas):
+    if(datas[2] == ""):
+        return None
+    
+    if(tirade_exist(conn, datas[2]) == False):
+        return create_tirade_object(conn, datas)
+
+def get_num_vers(nums):
+    if(nums != ""):
+        return nums.split('.')[2]
+    return None
+
+def get_num_scene_tirade(nums):
+    if(nums != ""):
+        return nums.split('.')[1]
+    return None
+
+def get_num_acts(nums):
+    if(nums != ""):
+        return nums.split('.')[0]
+    return None
+
+def get_nb_rows(conn, nbTypeTable):
+    sqlRequest = ""
+    if(nbTypeTable == 0):
+        print("Nb rows in personnages table:")
+        sqlRequest = """SELECT * FROM personnages"""
+    elif(nbTypeTable == 1):
+        print("Nb rows in pieces table:")
+        sqlRequest = """SELECT * FROM pieces"""
+    elif(nbTypeTable == 2):
+        print("Nb rows in tirades table:")
+        sqlRequest = """SELECT * FROM tirades"""
+    else:
+        print("Nb rows in texte table:")
+        sqlRequest = """SELECT * FROM texte"""
+
+    cur = conn.cursor()
+    cur.execute(sqlRequest)
+    rows = cur.fetchall()
+    count = 0
+    for row in rows:
+        count += 1
+
+    print(count)
+
+def save_line(conn, line):
+    datas = line.split('|')
+
+    """
+    0 = idtexte
+    1 = titre piece
+    2 = id tirade
+    3 = group of 3 numbers
+    4 = nom personnnage
+    5 = texte
+    """
+
+    idPiece = get_id_piece(conn, datas[1])
+    idTirade = get_id_tirade(conn, datas)
+    numeroVers = get_num_vers(datas[3])
+    texte = datas[5]
+
+    txtObj = (idPiece, idTirade, numeroVers, texte, )
+    create_texte(conn, txtObj)
 
 def main():
+    start = time.time()
+    print('>>>Start process')
     conn = create_connection('db/dbShakespeare.db')
-
     if conn is not None:
-        # Create Personnage table
-        fd = open("sql/20192504.001.Install-tPersonnageCreate.sql", "r")
-        sqlRequest = fd.read()
-        create_tables(conn, sqlRequest)
+        print('>>>running...')
+        create_all_tables(conn)
+        read_source_data(conn)
+        
+    print('>>>End process')
+    end = time.time()
+    duration = end - start
+    
+    print('Total duration:')
+    print(duration)
 
-        # Create Piece table
-        fd = open("sql/20192504.002.Install-tPieceCreate.sql", "r")
-        sqlRequest = fd.read()
-        create_tables(conn, sqlRequest)
-
-        # Create Tirade table
-        fd = open("sql/20192504.003.Install-tTiradeCreate.sql", "r")
-        sqlRequest = fd.read()
-        create_tables(conn, sqlRequest)
-
-        # Create Texte table
-        fd = open("sql/20192504.004.Install-tTexteCreate.sql", "r")
-        sqlRequest = fd.read()
-        create_tables(conn, sqlRequest)
-
-        # Test insert personnage
-        person = ('VUTuanTrung',)
-        personId = create_personnage(conn, person)
-
-        print(personId)
-
-        search_personnage(conn, person)
-
-    #dtLines = read_source_data()
-
+    get_nb_rows(conn, 0)
+    get_nb_rows(conn, 1)
+    get_nb_rows(conn, 2)
+    get_nb_rows(conn, 3)
 
 main()
 
