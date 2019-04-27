@@ -1,6 +1,7 @@
 import sqlite3
 from sqlite3 import Error
 import time
+import sys
 
 def create_connection(db_file):
     """ Create a database connection to a SQLite database"""
@@ -223,7 +224,7 @@ def save_line(conn, line):
 def main():
     start = time.time()
     print('>>>Start process')
-    conn = create_connection('db/dbShakespeare.db')
+    conn = create_connection(sys.argv[1])
     if conn is not None:
         print('>>>running...')
         create_all_tables(conn)
